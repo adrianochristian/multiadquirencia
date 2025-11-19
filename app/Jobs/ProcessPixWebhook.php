@@ -12,6 +12,10 @@ class ProcessPixWebhook implements ShouldQueue
 {
     use Queueable;
 
+    public int $tries = 3;
+
+    public array $backoff = [60, 300, 900];
+
     /**
      * Create a new job instance.
      */

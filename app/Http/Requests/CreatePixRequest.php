@@ -2,7 +2,9 @@
 
 namespace App\Http\Requests;
 
+use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Http\Exceptions\HttpResponseException;
 
 class CreatePixRequest extends FormRequest
 {
@@ -29,5 +31,15 @@ class CreatePixRequest extends FormRequest
             'customer_document' => 'nullable|string',
         ];
     }
-}
 
+    /**
+     * Handle a failed validation attempt.
+     */
+    protected function failedValidation(Validator $validator): void
+    {
+        throw new HttpResponseException(response()->json([
+            'success' => false,
+            'errors' => $validator->errors(),
+        ], 422));
+    }
+}

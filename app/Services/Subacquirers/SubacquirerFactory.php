@@ -22,10 +22,14 @@ class SubacquirerFactory
             return new MockSubacquirerService($subacquirer->code);
         }
 
-        return match ($subacquirer->code) {
-            'subadq_a' => new SubadqAService($subacquirer),
-            'subadq_b' => new SubadqBService($subacquirer),
-            default => throw new \Exception("Subacquirer {$subacquirer->code} not supported"),
-        };
+        $drivers = config('subacquirers.drivers', []);
+
+        $driverClass = $drivers[$subacquirer->code] ?? null;
+
+        if ($driverClass === null) {
+            throw new \Exception("Subacquirer {$subacquirer->code} not supported");
+        }
+
+        return new $driverClass($subacquirer);
     }
 }

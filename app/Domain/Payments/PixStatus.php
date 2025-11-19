@@ -1,13 +1,13 @@
 <?php
 
-namespace App\Enums;
+namespace App\Domain\Payments;
 
-enum WithdrawalStatus: string
+enum PixStatus: string
 {
     case PENDING = 'PENDING';
     case PROCESSING = 'PROCESSING';
-    case SUCCESS = 'SUCCESS';
-    case DONE = 'DONE';
+    case CONFIRMED = 'CONFIRMED';
+    case PAID = 'PAID';
     case CANCELLED = 'CANCELLED';
     case FAILED = 'FAILED';
 }

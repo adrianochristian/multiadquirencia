@@ -5,6 +5,7 @@ namespace App\Http\Requests;
 use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Http\Exceptions\HttpResponseException;
+use App\Application\Payments\Dto\CreatePixData;
 
 class CreatePixRequest extends FormRequest
 {
@@ -24,12 +25,16 @@ class CreatePixRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'user_id' => 'required|exists:users,id',
             'amount' => 'required|numeric|min:0.01',
             'description' => 'nullable|string',
             'customer_name' => 'nullable|string',
             'customer_document' => 'nullable|string',
         ];
+    }
+
+    public function toData(): CreatePixData
+    {
+        return CreatePixData::fromArray($this->validated());
     }
 
     /**
@@ -39,7 +44,11 @@ class CreatePixRequest extends FormRequest
     {
         throw new HttpResponseException(response()->json([
             'success' => false,
-            'errors' => $validator->errors(),
+            'error' => [
+                'code' => 'VALIDATION_ERROR',
+                'message' => 'The given data was invalid.',
+                'details' => $validator->errors(),
+            ],
         ], 422));
     }
 }

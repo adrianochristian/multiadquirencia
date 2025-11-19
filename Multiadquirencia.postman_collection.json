@@ -5,6 +5,16 @@
 		"description": "Collection completa para testar a API de integração com subadquirentes (PIX e Saques)\n\n## Usuários Disponíveis\n- ID 1: Usuário A (SubadqA)\n- ID 2: Usuário B (SubadqA)\n- ID 3: Usuário C (SubadqB)\n\n## Importante\n1. Execute os seeders antes: `php artisan db:seed`\n2. Inicie o servidor: `php artisan serve`\n3. Inicie o queue worker: `php artisan queue:work`\n4. Aguarde 2-3 segundos após criar PIX/Saque para ver webhook processado",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
 	},
+	"auth": {
+		"type": "bearer",
+		"bearer": [
+			{
+				"key": "token",
+				"value": "{{auth_token}}",
+				"type": "string"
+			}
+		]
+	},
 	"item": [
 		{
 			"name": "PIX",
@@ -60,7 +70,7 @@
 								],
 								"body": {
 									"mode": "raw",
-									"raw": "{\n  \"user_id\": 1,\n  \"amount\": 125.50,\n  \"description\": \"Pagamento via PIX - Teste SubadqA\",\n  \"customer_name\": \"João da Silva\",\n  \"customer_document\": \"12345678900\"\n}"
+									"raw": "{\n  \"amount\": 125.50,\n  \"description\": \"Pagamento via PIX - Teste SubadqA\",\n  \"customer_name\": \"João da Silva\",\n  \"customer_document\": \"12345678900\"\n}"
 								},
 								"url": {
 									"raw": "{{base_url}}/api/pix",
@@ -101,7 +111,7 @@
 								],
 								"body": {
 									"mode": "raw",
-									"raw": "{\n  \"user_id\": 3,\n  \"amount\": 250.00,\n  \"description\": \"Pagamento de serviço - Teste SubadqB\",\n  \"customer_name\": \"Maria Oliveira\",\n  \"customer_document\": \"98765432100\"\n}"
+									"raw": "{\n  \"amount\": 250.00,\n  \"description\": \"Pagamento de serviço - Teste SubadqB\",\n  \"customer_name\": \"Maria Oliveira\",\n  \"customer_document\": \"98765432100\"\n}"
 								},
 								"url": {
 									"raw": "{{base_url}}/api/pix",
@@ -124,7 +134,7 @@
 								],
 								"body": {
 									"mode": "raw",
-									"raw": "{\n  \"user_id\": 2,\n  \"amount\": 0.01,\n  \"description\": \"Teste de valor mínimo\"\n}"
+									"raw": "{\n  \"amount\": 0.01,\n  \"description\": \"Teste de valor mínimo\"\n}"
 								},
 								"url": {
 									"raw": "{{base_url}}/api/pix",
@@ -147,7 +157,7 @@
 								],
 								"body": {
 									"mode": "raw",
-									"raw": "{\n  \"user_id\": 1,\n  \"amount\": 9999.99,\n  \"description\": \"Pagamento de alto valor\",\n  \"customer_name\": \"Cliente Premium\",\n  \"customer_document\": \"11122233344\"\n}"
+									"raw": "{\n  \"amount\": 9999.99,\n  \"description\": \"Pagamento de alto valor\",\n  \"customer_name\": \"Cliente Premium\",\n  \"customer_document\": \"11122233344\"\n}"
 								},
 								"url": {
 									"raw": "{{base_url}}/api/pix",
@@ -170,7 +180,7 @@
 								],
 								"body": {
 									"mode": "raw",
-									"raw": "{\n  \"user_id\": 2,\n  \"amount\": 50.00\n}"
+									"raw": "{\n  \"amount\": 50.00\n}"
 								},
 								"url": {
 									"raw": "{{base_url}}/api/pix",
@@ -201,7 +211,8 @@
 											"pm.test(\"Response has validation errors\", function () {",
 											"    var jsonData = pm.response.json();",
 											"    pm.expect(jsonData.success).to.eql(false);",
-											"    pm.expect(jsonData).to.have.property('errors');",
+											"    pm.expect(jsonData).to.have.property('error');",
+											"    pm.expect(jsonData.error).to.have.property('details');",
 											"});"
 										],
 										"type": "text/javascript"
@@ -218,7 +229,7 @@
 								],
 								"body": {
 									"mode": "raw",
-									"raw": "{\n  \"user_id\": 1,\n  \"amount\": -10.00,\n  \"description\": \"Teste de erro - valor negativo\"\n}"
+									"raw": "{\n  \"amount\": -10.00,\n  \"description\": \"Teste de erro - valor negativo\"\n}"
 								},
 								"url": {
 									"raw": "{{base_url}}/api/pix",
@@ -254,7 +265,7 @@
 								],
 								"body": {
 									"mode": "raw",
-									"raw": "{\n  \"user_id\": 1,\n  \"amount\": 0,\n  \"description\": \"Teste de erro - valor zero\"\n}"
+									"raw": "{\n  \"amount\": 0,\n  \"description\": \"Teste de erro - valor zero\"\n}"
 								},
 								"url": {
 									"raw": "{{base_url}}/api/pix",
@@ -290,7 +301,7 @@
 								],
 								"body": {
 									"mode": "raw",
-									"raw": "{\n  \"user_id\": 999,\n  \"amount\": 100.00,\n  \"description\": \"Usuário inexistente\"\n}"
+									"raw": "{\n  \"amount\": 100.00,\n  \"description\": \"Usuário inexistente\"\n}"
 								},
 								"url": {
 									"raw": "{{base_url}}/api/pix",
@@ -314,8 +325,8 @@
 											"",
 											"pm.test(\"Has validation errors for required fields\", function () {",
 											"    var jsonData = pm.response.json();",
-											"    pm.expect(jsonData.errors).to.have.property('user_id');",
-											"    pm.expect(jsonData.errors).to.have.property('amount');",
+											"    var errors = jsonData.error.details;",
+											"    pm.expect(errors).to.have.property('amount');",
 											"});"
 										],
 										"type": "text/javascript"
@@ -368,7 +379,7 @@
 								],
 								"body": {
 									"mode": "raw",
-									"raw": "{\n  \"user_id\": \"abc\",\n  \"amount\": \"texto\",\n  \"description\": \"Teste com tipos inválidos\"\n}"
+									"raw": "{\n  \"amount\": \"texto\",\n  \"description\": \"Teste com tipos inválidos\"\n}"
 								},
 								"url": {
 									"raw": "{{base_url}}/api/pix",
@@ -428,7 +439,7 @@
 								],
 								"body": {
 									"mode": "raw",
-									"raw": "{\n  \"user_id\": 1,\n  \"amount\": 500.00,\n  \"bank_code\": \"341\",\n  \"agency\": \"0001\",\n  \"account\": \"12345678\",\n  \"account_type\": \"checking\",\n  \"holder_name\": \"João da Silva\",\n  \"holder_document\": \"12345678900\"\n}"
+									"raw": "{\n  \"amount\": 500.00,\n  \"bank_code\": \"341\",\n  \"agency\": \"0001\",\n  \"account\": \"12345678\",\n  \"account_type\": \"checking\",\n  \"holder_name\": \"João da Silva\",\n  \"holder_document\": \"12345678900\"\n}"
 								},
 								"url": {
 									"raw": "{{base_url}}/api/withdraw",
@@ -464,7 +475,7 @@
 								],
 								"body": {
 									"mode": "raw",
-									"raw": "{\n  \"user_id\": 3,\n  \"amount\": 850.00,\n  \"bank_code\": \"260\",\n  \"agency\": \"0001\",\n  \"account\": \"1234567-8\",\n  \"account_type\": \"savings\",\n  \"holder_name\": \"Maria Oliveira\",\n  \"holder_document\": \"98765432100\"\n}"
+									"raw": "{\n  \"amount\": 850.00,\n  \"bank_code\": \"260\",\n  \"agency\": \"0001\",\n  \"account\": \"1234567-8\",\n  \"account_type\": \"savings\",\n  \"holder_name\": \"Maria Oliveira\",\n  \"holder_document\": \"98765432100\"\n}"
 								},
 								"url": {
 									"raw": "{{base_url}}/api/withdraw",
@@ -487,7 +498,7 @@
 								],
 								"body": {
 									"mode": "raw",
-									"raw": "{\n  \"user_id\": 2,\n  \"amount\": 1500.00,\n  \"bank_code\": \"001\",\n  \"agency\": \"1234\",\n  \"account\": \"987654-3\",\n  \"account_type\": \"checking\",\n  \"holder_name\": \"Pedro Santos\",\n  \"holder_document\": \"11122233344\"\n}"
+									"raw": "{\n  \"amount\": 1500.00,\n  \"bank_code\": \"001\",\n  \"agency\": \"1234\",\n  \"account\": \"987654-3\",\n  \"account_type\": \"checking\",\n  \"holder_name\": \"Pedro Santos\",\n  \"holder_document\": \"11122233344\"\n}"
 								},
 								"url": {
 									"raw": "{{base_url}}/api/withdraw",
@@ -510,7 +521,7 @@
 								],
 								"body": {
 									"mode": "raw",
-									"raw": "{\n  \"user_id\": 1,\n  \"amount\": 250.00,\n  \"bank_code\": \"104\",\n  \"agency\": \"5678\",\n  \"account\": \"111222-3\",\n  \"account_type\": \"savings\",\n  \"holder_name\": \"Ana Costa\",\n  \"holder_document\": \"55566677788\"\n}"
+									"raw": "{\n  \"amount\": 250.00,\n  \"bank_code\": \"104\",\n  \"agency\": \"5678\",\n  \"account\": \"111222-3\",\n  \"account_type\": \"savings\",\n  \"holder_name\": \"Ana Costa\",\n  \"holder_document\": \"55566677788\"\n}"
 								},
 								"url": {
 									"raw": "{{base_url}}/api/withdraw",
@@ -533,7 +544,7 @@
 								],
 								"body": {
 									"mode": "raw",
-									"raw": "{\n  \"user_id\": 2,\n  \"amount\": 300.00,\n  \"bank_code\": \"237\",\n  \"agency\": \"9999\",\n  \"account\": \"333444-5\",\n  \"holder_name\": \"Carlos Lima\",\n  \"holder_document\": \"99988877766\"\n}"
+									"raw": "{\n  \"amount\": 300.00,\n  \"bank_code\": \"237\",\n  \"agency\": \"9999\",\n  \"account\": \"333444-5\",\n  \"holder_name\": \"Carlos Lima\",\n  \"holder_document\": \"99988877766\"\n}"
 								},
 								"url": {
 									"raw": "{{base_url}}/api/withdraw",
@@ -564,7 +575,8 @@
 											"pm.test(\"Has validation errors\", function () {",
 											"    var jsonData = pm.response.json();",
 											"    pm.expect(jsonData.success).to.eql(false);",
-											"    pm.expect(jsonData).to.have.property('errors');",
+											"    pm.expect(jsonData).to.have.property('error');",
+											"    pm.expect(jsonData.error).to.have.property('details');",
 											"});"
 										],
 										"type": "text/javascript"
@@ -581,7 +593,7 @@
 								],
 								"body": {
 									"mode": "raw",
-									"raw": "{\n  \"user_id\": 1,\n  \"amount\": 100.00\n}"
+									"raw": "{\n  \"amount\": 100.00\n}"
 								},
 								"url": {
 									"raw": "{{base_url}}/api/withdraw",
@@ -617,7 +629,7 @@
 								],
 								"body": {
 									"mode": "raw",
-									"raw": "{\n  \"user_id\": 1,\n  \"amount\": 0,\n  \"bank_code\": \"341\",\n  \"agency\": \"0001\",\n  \"account\": \"12345678\",\n  \"account_type\": \"checking\",\n  \"holder_name\": \"João da Silva\",\n  \"holder_document\": \"12345678900\"\n}"
+									"raw": "{\n  \"amount\": 0,\n  \"bank_code\": \"341\",\n  \"agency\": \"0001\",\n  \"account\": \"12345678\",\n  \"account_type\": \"checking\",\n  \"holder_name\": \"João da Silva\",\n  \"holder_document\": \"12345678900\"\n}"
 								},
 								"url": {
 									"raw": "{{base_url}}/api/withdraw",
@@ -653,7 +665,7 @@
 								],
 								"body": {
 									"mode": "raw",
-									"raw": "{\n  \"user_id\": 1,\n  \"amount\": 100.00,\n  \"bank_code\": \"341\",\n  \"agency\": \"0001\",\n  \"account\": \"12345678\",\n  \"account_type\": \"investimento\",\n  \"holder_name\": \"João da Silva\",\n  \"holder_document\": \"12345678900\"\n}"
+									"raw": "{\n  \"amount\": 100.00,\n  \"bank_code\": \"341\",\n  \"agency\": \"0001\",\n  \"account\": \"12345678\",\n  \"account_type\": \"investimento\",\n  \"holder_name\": \"João da Silva\",\n  \"holder_document\": \"12345678900\"\n}"
 								},
 								"url": {
 									"raw": "{{base_url}}/api/withdraw",
@@ -689,7 +701,7 @@
 								],
 								"body": {
 									"mode": "raw",
-									"raw": "{\n  \"user_id\": 999,\n  \"amount\": 100.00,\n  \"bank_code\": \"341\",\n  \"agency\": \"0001\",\n  \"account\": \"12345678\",\n  \"account_type\": \"checking\",\n  \"holder_name\": \"Teste\",\n  \"holder_document\": \"12345678900\"\n}"
+									"raw": "{\n  \"amount\": 100.00,\n  \"bank_code\": \"341\",\n  \"agency\": \"0001\",\n  \"account\": \"12345678\",\n  \"account_type\": \"checking\",\n  \"holder_name\": \"Teste\",\n  \"holder_document\": \"12345678900\"\n}"
 								},
 								"url": {
 									"raw": "{{base_url}}/api/withdraw",
@@ -721,7 +733,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"user_id\": {{$randomInt}},\n  \"amount\": {{$randomPrice}},\n  \"description\": \"Teste de carga - {{$timestamp}}\",\n  \"customer_name\": \"{{$randomFullName}}\",\n  \"customer_document\": \"{{$randomBankAccount}}\"\n}"
+							"raw": "{\n  \"amount\": {{$randomPrice}},\n  \"description\": \"Teste de carga - {{$timestamp}}\",\n  \"customer_name\": \"{{$randomFullName}}\",\n  \"customer_document\": \"{{$randomBankAccount}}\"\n}"
 						},
 						"url": {
 							"raw": "{{base_url}}/api/pix",
@@ -744,7 +756,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"user_id\": 1,\n  \"amount\": {{$randomPrice}},\n  \"bank_code\": \"{{$randomBankAccount}}\",\n  \"agency\": \"{{$randomInt}}\",\n  \"account\": \"{{$randomBankAccount}}\",\n  \"account_type\": \"checking\",\n  \"holder_name\": \"{{$randomFullName}}\",\n  \"holder_document\": \"{{$randomBankAccount}}\"\n}"
+							"raw": "{\n  \"amount\": {{$randomPrice}},\n  \"bank_code\": \"{{$randomBankAccount}}\",\n  \"agency\": \"{{$randomInt}}\",\n  \"account\": \"{{$randomBankAccount}}\",\n  \"account_type\": \"checking\",\n  \"holder_name\": \"{{$randomFullName}}\",\n  \"holder_document\": \"{{$randomBankAccount}}\"\n}"
 						},
 						"url": {
 							"raw": "{{base_url}}/api/withdraw",

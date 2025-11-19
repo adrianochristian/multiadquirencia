@@ -2,7 +2,7 @@
 
 namespace App\Models;
 
-use App\Enums\PixStatus;
+use App\Domain\Payments\PixStatus;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 

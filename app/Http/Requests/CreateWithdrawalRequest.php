@@ -5,6 +5,7 @@ namespace App\Http\Requests;
 use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Http\Exceptions\HttpResponseException;
+use App\Application\Payments\Dto\CreateWithdrawalData;
 
 class CreateWithdrawalRequest extends FormRequest
 {
@@ -24,7 +25,6 @@ class CreateWithdrawalRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'user_id' => 'required|exists:users,id',
             'amount' => 'required|numeric|min:0.01',
             'bank_code' => 'required|string',
             'agency' => 'required|string',
@@ -35,6 +35,11 @@ class CreateWithdrawalRequest extends FormRequest
         ];
     }
 
+    public function toData(): CreateWithdrawalData
+    {
+        return CreateWithdrawalData::fromArray($this->validated());
+    }
+
     /**
      * Handle a failed validation attempt.
      */
@@ -42,7 +47,11 @@ class CreateWithdrawalRequest extends FormRequest
     {
         throw new HttpResponseException(response()->json([
             'success' => false,
-            'errors' => $validator->errors(),
+            'error' => [
+                'code' => 'VALIDATION_ERROR',
+                'message' => 'The given data was invalid.',
+                'details' => $validator->errors(),
+            ],
         ], 422));
     }
 }

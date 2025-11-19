@@ -12,9 +12,9 @@ class ProcessPixWebhook implements ShouldQueue
 {
     use Queueable;
 
-    public int $tries = 3;
+    public int $tries;
 
-    public array $backoff = [60, 300, 900];
+    public array $backoff;
 
     /**
      * Create a new job instance.
@@ -23,6 +23,8 @@ class ProcessPixWebhook implements ShouldQueue
         public PixTransaction $pixTransaction,
         public array $webhookPayload
     ) {
+        $this->tries = (int) config('subacquirers.webhook_jobs.tries', 3);
+        $this->backoff = config('subacquirers.webhook_jobs.backoff', [60, 300, 900]);
     }
 
     /**
@@ -38,6 +40,35 @@ class ProcessPixWebhook implements ShouldQueue
 
             $subacquirerService = SubacquirerFactory::make($this->pixTransaction->subacquirer);
             $parsedData = $subacquirerService->parsePixWebhook($this->webhookPayload);
+
+            $newStatus = $parsedData['status'] ?? null;
+
+            if ($newStatus === null) {
+                Log::warning('PIX webhook without status, skipping', [
+                    'pix_id' => $this->pixTransaction->id,
+                ]);
+
+                return;
+            }
+
+            if ($this->pixTransaction->status === $newStatus) {
+                Log::info('Ignoring duplicate PIX webhook with same status', [
+                    'pix_id' => $this->pixTransaction->id,
+                    'status' => $newStatus,
+                ]);
+
+                return;
+            }
+
+            if ($this->pixTransaction->isPaid()) {
+                Log::info('Ignoring PIX webhook for already paid transaction', [
+                    'pix_id' => $this->pixTransaction->id,
+                    'current_status' => $this->pixTransaction->status,
+                    'incoming_status' => $newStatus,
+                ]);
+
+                return;
+            }
 
             $this->pixTransaction->update([
                 'status' => $parsedData['status'],

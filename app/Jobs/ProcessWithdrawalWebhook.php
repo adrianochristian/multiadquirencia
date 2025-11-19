@@ -12,9 +12,9 @@ class ProcessWithdrawalWebhook implements ShouldQueue
 {
     use Queueable;
 
-    public int $tries = 3;
+    public int $tries;
 
-    public array $backoff = [60, 300, 900];
+    public array $backoff;
 
     /**
      * Create a new job instance.
@@ -23,6 +23,8 @@ class ProcessWithdrawalWebhook implements ShouldQueue
         public Withdrawal $withdrawal,
         public array $webhookPayload
     ) {
+        $this->tries = (int) config('subacquirers.webhook_jobs.tries', 3);
+        $this->backoff = config('subacquirers.webhook_jobs.backoff', [60, 300, 900]);
     }
 
     /**
@@ -38,6 +40,35 @@ class ProcessWithdrawalWebhook implements ShouldQueue
 
             $subacquirerService = SubacquirerFactory::make($this->withdrawal->subacquirer);
             $parsedData = $subacquirerService->parseWithdrawalWebhook($this->webhookPayload);
+
+            $newStatus = $parsedData['status'] ?? null;
+
+            if ($newStatus === null) {
+                Log::warning('Withdrawal webhook without status, skipping', [
+                    'withdrawal_id' => $this->withdrawal->id,
+                ]);
+
+                return;
+            }
+
+            if ($this->withdrawal->status === $newStatus) {
+                Log::info('Ignoring duplicate Withdrawal webhook with same status', [
+                    'withdrawal_id' => $this->withdrawal->id,
+                    'status' => $newStatus,
+                ]);
+
+                return;
+            }
+
+            if ($this->withdrawal->isCompleted()) {
+                Log::info('Ignoring Withdrawal webhook for already completed withdrawal', [
+                    'withdrawal_id' => $this->withdrawal->id,
+                    'current_status' => $this->withdrawal->status,
+                    'incoming_status' => $newStatus,
+                ]);
+
+                return;
+            }
 
             $this->withdrawal->update([
                 'status' => $parsedData['status'],

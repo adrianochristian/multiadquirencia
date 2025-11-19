@@ -29,17 +29,18 @@ abstract class BaseSubacquirerService
     protected function makeRequest(string $method, string $endpoint, array $data = [], array $headers = []): array
     {
         try {
+            $maskedRequestData = $this->maskSensitive($data);
             $url = $this->baseUrl . $endpoint;
 
             Log::info("Subacquirer Request", [
                 'subacquirer' => $this->subacquirer->code,
                 'method' => $method,
                 'url' => $url,
-                'data' => $data,
+                'data' => $maskedRequestData,
                 'headers' => $headers,
             ]);
 
-            $response = Http::timeout(5)
+            $response = Http::timeout((int) config('subacquirers.http_timeout', 5))
                 ->withHeaders($headers)
                 ->$method($url, $data);
 
@@ -48,7 +49,7 @@ abstract class BaseSubacquirerService
             Log::info("Subacquirer Response", [
                 'subacquirer' => $this->subacquirer->code,
                 'status' => $response->status(),
-                'response' => $responseData,
+                'response' => is_array($responseData) ? $this->maskSensitive($responseData) : $responseData,
             ]);
 
             if ($response->failed()) {
@@ -72,6 +73,33 @@ abstract class BaseSubacquirerService
                 'data' => null,
             ];
         }
+    }
+
+    /**
+     * @param array<string, mixed> $data
+     * @return array<string, mixed>
+     */
+    protected function maskSensitive(array $data): array
+    {
+        foreach ($data as $key => $value) {
+            if (is_array($value)) {
+                $data[$key] = $this->maskSensitive($value);
+                continue;
+            }
+
+            if (in_array($key, ['document', 'payer_cpf', 'holder_document'], true)) {
+                $data[$key] = $this->maskDocument((string) $value);
+            }
+        }
+
+        return $data;
+    }
+
+    protected function maskDocument(string $document): string
+    {
+        $lastDigits = substr($document, -4);
+
+        return '***' . $lastDigits;
     }
 
     /**

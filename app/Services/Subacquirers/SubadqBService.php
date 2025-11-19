@@ -2,6 +2,8 @@
 
 namespace App\Services\Subacquirers;
 
+use App\Domain\Payments\PixStatus;
+use App\Domain\Payments\WithdrawalStatus;
 use App\Services\Subacquirers\Contracts\SubacquirerInterface;
 
 class SubadqBService extends BaseSubacquirerService implements SubacquirerInterface
@@ -123,15 +125,15 @@ class SubadqBService extends BaseSubacquirerService implements SubacquirerInterf
     protected function normalizeStatus(string $status): string
     {
         return match (strtoupper($status)) {
-            'PENDING' => 'PENDING',
-            'PROCESSING' => 'PROCESSING',
-            'CONFIRMED' => 'CONFIRMED',
-            'PAID' => 'PAID',
-            'SUCCESS' => 'SUCCESS',
-            'DONE' => 'DONE',
-            'CANCELLED' => 'CANCELLED',
-            'FAILED' => 'FAILED',
-            default => 'PENDING',
+            'PENDING' => PixStatus::PENDING->value,
+            'PROCESSING' => PixStatus::PROCESSING->value,
+            'CONFIRMED' => PixStatus::CONFIRMED->value,
+            'PAID' => PixStatus::PAID->value,
+            'SUCCESS' => WithdrawalStatus::SUCCESS->value,
+            'DONE' => WithdrawalStatus::DONE->value,
+            'CANCELLED' => WithdrawalStatus::CANCELLED->value,
+            'FAILED' => WithdrawalStatus::FAILED->value,
+            default => PixStatus::PENDING->value,
         };
     }
 }

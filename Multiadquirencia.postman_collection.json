@@ -1,0 +1,792 @@
+{
+	"info": {
+		"_postman_id": "multiadquirencia-collection-2025",
+		"name": "Sistema Multiadquirência - Completo",
+		"description": "Collection completa para testar a API de integração com subadquirentes (PIX e Saques)\n\n## Usuários Disponíveis\n- ID 1: Usuário A (SubadqA)\n- ID 2: Usuário B (SubadqA)\n- ID 3: Usuário C (SubadqB)\n\n## Importante\n1. Execute os seeders antes: `php artisan db:seed`\n2. Inicie o servidor: `php artisan serve`\n3. Inicie o queue worker: `php artisan queue:work`\n4. Aguarde 2-3 segundos após criar PIX/Saque para ver webhook processado",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "PIX",
+			"item": [
+				{
+					"name": "Cenários de Sucesso",
+					"item": [
+						{
+							"name": "Criar PIX - Usuário 1 (SubadqA)",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.test(\"Status code is 201\", function () {",
+											"    pm.response.to.have.status(201);",
+											"});",
+											"",
+											"pm.test(\"Response has success true\", function () {",
+											"    var jsonData = pm.response.json();",
+											"    pm.expect(jsonData.success).to.eql(true);",
+											"});",
+											"",
+											"pm.test(\"Response has transaction data\", function () {",
+											"    var jsonData = pm.response.json();",
+											"    pm.expect(jsonData.data).to.have.property('transaction_id');",
+											"    pm.expect(jsonData.data).to.have.property('external_id');",
+											"    pm.expect(jsonData.data).to.have.property('qr_code');",
+											"    pm.expect(jsonData.data).to.have.property('status');",
+											"});",
+											"",
+											"// Save transaction_id for later use",
+											"if (pm.response.code === 201) {",
+											"    var jsonData = pm.response.json();",
+											"    pm.environment.set(\"last_pix_transaction_id\", jsonData.data.transaction_id);",
+											"}"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									},
+									{
+										"key": "Accept",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"user_id\": 1,\n  \"amount\": 125.50,\n  \"description\": \"Pagamento via PIX - Teste SubadqA\",\n  \"customer_name\": \"João da Silva\",\n  \"customer_document\": \"12345678900\"\n}"
+								},
+								"url": {
+									"raw": "{{base_url}}/api/pix",
+									"host": ["{{base_url}}"],
+									"path": ["api", "pix"]
+								},
+								"description": "Cria uma transação PIX usando SubadqA.\n\n**Webhook será processado após 2 segundos.**\n\nStatus esperado: PENDING → CONFIRMED"
+							},
+							"response": []
+						},
+						{
+							"name": "Criar PIX - Usuário 3 (SubadqB)",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.test(\"Status code is 201\", function () {",
+											"    pm.response.to.have.status(201);",
+											"});",
+											"",
+											"pm.test(\"Response has success true\", function () {",
+											"    var jsonData = pm.response.json();",
+											"    pm.expect(jsonData.success).to.eql(true);",
+											"});"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"user_id\": 3,\n  \"amount\": 250.00,\n  \"description\": \"Pagamento de serviço - Teste SubadqB\",\n  \"customer_name\": \"Maria Oliveira\",\n  \"customer_document\": \"98765432100\"\n}"
+								},
+								"url": {
+									"raw": "{{base_url}}/api/pix",
+									"host": ["{{base_url}}"],
+									"path": ["api", "pix"]
+								},
+								"description": "Cria uma transação PIX usando SubadqB.\n\n**Webhook será processado após 2 segundos.**\n\nStatus esperado: PENDING → PAID"
+							},
+							"response": []
+						},
+						{
+							"name": "Criar PIX - Valor Mínimo (0.01)",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"user_id\": 2,\n  \"amount\": 0.01,\n  \"description\": \"Teste de valor mínimo\"\n}"
+								},
+								"url": {
+									"raw": "{{base_url}}/api/pix",
+									"host": ["{{base_url}}"],
+									"path": ["api", "pix"]
+								},
+								"description": "Testa a criação de PIX com o valor mínimo permitido (R$ 0,01)"
+							},
+							"response": []
+						},
+						{
+							"name": "Criar PIX - Valor Alto",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"user_id\": 1,\n  \"amount\": 9999.99,\n  \"description\": \"Pagamento de alto valor\",\n  \"customer_name\": \"Cliente Premium\",\n  \"customer_document\": \"11122233344\"\n}"
+								},
+								"url": {
+									"raw": "{{base_url}}/api/pix",
+									"host": ["{{base_url}}"],
+									"path": ["api", "pix"]
+								},
+								"description": "Testa PIX com valor alto"
+							},
+							"response": []
+						},
+						{
+							"name": "Criar PIX - Campos Opcionais Vazios",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"user_id\": 2,\n  \"amount\": 50.00\n}"
+								},
+								"url": {
+									"raw": "{{base_url}}/api/pix",
+									"host": ["{{base_url}}"],
+									"path": ["api", "pix"]
+								},
+								"description": "Testa criação de PIX apenas com campos obrigatórios"
+							},
+							"response": []
+						}
+					],
+					"description": "Casos de teste com sucesso esperado"
+				},
+				{
+					"name": "Cenários de Erro",
+					"item": [
+						{
+							"name": "Erro - Valor Negativo",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.test(\"Status code is 422\", function () {",
+											"    pm.response.to.have.status(422);",
+											"});",
+											"",
+											"pm.test(\"Response has validation errors\", function () {",
+											"    var jsonData = pm.response.json();",
+											"    pm.expect(jsonData.success).to.eql(false);",
+											"    pm.expect(jsonData).to.have.property('errors');",
+											"});"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"user_id\": 1,\n  \"amount\": -10.00,\n  \"description\": \"Teste de erro - valor negativo\"\n}"
+								},
+								"url": {
+									"raw": "{{base_url}}/api/pix",
+									"host": ["{{base_url}}"],
+									"path": ["api", "pix"]
+								},
+								"description": "Testa validação de valor negativo.\n\nResposta esperada: 422 Unprocessable Entity"
+							},
+							"response": []
+						},
+						{
+							"name": "Erro - Valor Zero",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.test(\"Status code is 422\", function () {",
+											"    pm.response.to.have.status(422);",
+											"});"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"user_id\": 1,\n  \"amount\": 0,\n  \"description\": \"Teste de erro - valor zero\"\n}"
+								},
+								"url": {
+									"raw": "{{base_url}}/api/pix",
+									"host": ["{{base_url}}"],
+									"path": ["api", "pix"]
+								},
+								"description": "Testa validação de valor zero"
+							},
+							"response": []
+						},
+						{
+							"name": "Erro - Usuário Inexistente",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.test(\"Status code is 422\", function () {",
+											"    pm.response.to.have.status(422);",
+											"});"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"user_id\": 999,\n  \"amount\": 100.00,\n  \"description\": \"Usuário inexistente\"\n}"
+								},
+								"url": {
+									"raw": "{{base_url}}/api/pix",
+									"host": ["{{base_url}}"],
+									"path": ["api", "pix"]
+								},
+								"description": "Testa com user_id que não existe no banco"
+							},
+							"response": []
+						},
+						{
+							"name": "Erro - Campos Obrigatórios Faltando",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.test(\"Status code is 422\", function () {",
+											"    pm.response.to.have.status(422);",
+											"});",
+											"",
+											"pm.test(\"Has validation errors for required fields\", function () {",
+											"    var jsonData = pm.response.json();",
+											"    pm.expect(jsonData.errors).to.have.property('user_id');",
+											"    pm.expect(jsonData.errors).to.have.property('amount');",
+											"});"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"description\": \"Teste sem campos obrigatórios\"\n}"
+								},
+								"url": {
+									"raw": "{{base_url}}/api/pix",
+									"host": ["{{base_url}}"],
+									"path": ["api", "pix"]
+								},
+								"description": "Testa requisição sem user_id e amount"
+							},
+							"response": []
+						},
+						{
+							"name": "Erro - Tipo de Dado Inválido",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.test(\"Status code is 422\", function () {",
+											"    pm.response.to.have.status(422);",
+											"});"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"user_id\": \"abc\",\n  \"amount\": \"texto\",\n  \"description\": \"Teste com tipos inválidos\"\n}"
+								},
+								"url": {
+									"raw": "{{base_url}}/api/pix",
+									"host": ["{{base_url}}"],
+									"path": ["api", "pix"]
+								},
+								"description": "Testa com tipos de dados incorretos"
+							},
+							"response": []
+						}
+					],
+					"description": "Casos de teste com erros esperados"
+				}
+			],
+			"description": "Endpoints relacionados a transações PIX"
+		},
+		{
+			"name": "Saque (Withdrawal)",
+			"item": [
+				{
+					"name": "Cenários de Sucesso",
+					"item": [
+						{
+							"name": "Criar Saque - Usuário 1 (SubadqA)",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.test(\"Status code is 201\", function () {",
+											"    pm.response.to.have.status(201);",
+											"});",
+											"",
+											"pm.test(\"Response has success true\", function () {",
+											"    var jsonData = pm.response.json();",
+											"    pm.expect(jsonData.success).to.eql(true);",
+											"});",
+											"",
+											"pm.test(\"Response has withdrawal data\", function () {",
+											"    var jsonData = pm.response.json();",
+											"    pm.expect(jsonData.data).to.have.property('withdrawal_id');",
+											"    pm.expect(jsonData.data).to.have.property('external_id');",
+											"    pm.expect(jsonData.data).to.have.property('status');",
+											"});"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"user_id\": 1,\n  \"amount\": 500.00,\n  \"bank_code\": \"341\",\n  \"agency\": \"0001\",\n  \"account\": \"12345678\",\n  \"account_type\": \"checking\",\n  \"holder_name\": \"João da Silva\",\n  \"holder_document\": \"12345678900\"\n}"
+								},
+								"url": {
+									"raw": "{{base_url}}/api/withdraw",
+									"host": ["{{base_url}}"],
+									"path": ["api", "withdraw"]
+								},
+								"description": "Cria um saque usando SubadqA.\n\n**Webhook será processado após 3 segundos.**\n\nStatus esperado: PENDING → SUCCESS"
+							},
+							"response": []
+						},
+						{
+							"name": "Criar Saque - Usuário 3 (SubadqB)",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.test(\"Status code is 201\", function () {",
+											"    pm.response.to.have.status(201);",
+											"});"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"user_id\": 3,\n  \"amount\": 850.00,\n  \"bank_code\": \"260\",\n  \"agency\": \"0001\",\n  \"account\": \"1234567-8\",\n  \"account_type\": \"savings\",\n  \"holder_name\": \"Maria Oliveira\",\n  \"holder_document\": \"98765432100\"\n}"
+								},
+								"url": {
+									"raw": "{{base_url}}/api/withdraw",
+									"host": ["{{base_url}}"],
+									"path": ["api", "withdraw"]
+								},
+								"description": "Cria um saque usando SubadqB.\n\n**Webhook será processado após 3 segundos.**\n\nStatus esperado: PENDING → DONE"
+							},
+							"response": []
+						},
+						{
+							"name": "Criar Saque - Conta Corrente",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"user_id\": 2,\n  \"amount\": 1500.00,\n  \"bank_code\": \"001\",\n  \"agency\": \"1234\",\n  \"account\": \"987654-3\",\n  \"account_type\": \"checking\",\n  \"holder_name\": \"Pedro Santos\",\n  \"holder_document\": \"11122233344\"\n}"
+								},
+								"url": {
+									"raw": "{{base_url}}/api/withdraw",
+									"host": ["{{base_url}}"],
+									"path": ["api", "withdraw"]
+								},
+								"description": "Saque para conta corrente (checking)"
+							},
+							"response": []
+						},
+						{
+							"name": "Criar Saque - Conta Poupança",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"user_id\": 1,\n  \"amount\": 250.00,\n  \"bank_code\": \"104\",\n  \"agency\": \"5678\",\n  \"account\": \"111222-3\",\n  \"account_type\": \"savings\",\n  \"holder_name\": \"Ana Costa\",\n  \"holder_document\": \"55566677788\"\n}"
+								},
+								"url": {
+									"raw": "{{base_url}}/api/withdraw",
+									"host": ["{{base_url}}"],
+									"path": ["api", "withdraw"]
+								},
+								"description": "Saque para conta poupança (savings)"
+							},
+							"response": []
+						},
+						{
+							"name": "Criar Saque - Sem account_type (default: checking)",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"user_id\": 2,\n  \"amount\": 300.00,\n  \"bank_code\": \"237\",\n  \"agency\": \"9999\",\n  \"account\": \"333444-5\",\n  \"holder_name\": \"Carlos Lima\",\n  \"holder_document\": \"99988877766\"\n}"
+								},
+								"url": {
+									"raw": "{{base_url}}/api/withdraw",
+									"host": ["{{base_url}}"],
+									"path": ["api", "withdraw"]
+								},
+								"description": "Testa o valor padrão de account_type (deve ser 'checking')"
+							},
+							"response": []
+						}
+					],
+					"description": "Casos de sucesso para saques"
+				},
+				{
+					"name": "Cenários de Erro",
+					"item": [
+						{
+							"name": "Erro - Campos Obrigatórios Faltando",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.test(\"Status code is 422\", function () {",
+											"    pm.response.to.have.status(422);",
+											"});",
+											"",
+											"pm.test(\"Has validation errors\", function () {",
+											"    var jsonData = pm.response.json();",
+											"    pm.expect(jsonData.success).to.eql(false);",
+											"    pm.expect(jsonData).to.have.property('errors');",
+											"});"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"user_id\": 1,\n  \"amount\": 100.00\n}"
+								},
+								"url": {
+									"raw": "{{base_url}}/api/withdraw",
+									"host": ["{{base_url}}"],
+									"path": ["api", "withdraw"]
+								},
+								"description": "Testa sem dados bancários obrigatórios"
+							},
+							"response": []
+						},
+						{
+							"name": "Erro - Valor Inválido (zero)",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.test(\"Status code is 422\", function () {",
+											"    pm.response.to.have.status(422);",
+											"});"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"user_id\": 1,\n  \"amount\": 0,\n  \"bank_code\": \"341\",\n  \"agency\": \"0001\",\n  \"account\": \"12345678\",\n  \"account_type\": \"checking\",\n  \"holder_name\": \"João da Silva\",\n  \"holder_document\": \"12345678900\"\n}"
+								},
+								"url": {
+									"raw": "{{base_url}}/api/withdraw",
+									"host": ["{{base_url}}"],
+									"path": ["api", "withdraw"]
+								},
+								"description": "Testa saque com valor zero"
+							},
+							"response": []
+						},
+						{
+							"name": "Erro - account_type Inválido",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.test(\"Status code is 422\", function () {",
+											"    pm.response.to.have.status(422);",
+											"});"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"user_id\": 1,\n  \"amount\": 100.00,\n  \"bank_code\": \"341\",\n  \"agency\": \"0001\",\n  \"account\": \"12345678\",\n  \"account_type\": \"investimento\",\n  \"holder_name\": \"João da Silva\",\n  \"holder_document\": \"12345678900\"\n}"
+								},
+								"url": {
+									"raw": "{{base_url}}/api/withdraw",
+									"host": ["{{base_url}}"],
+									"path": ["api", "withdraw"]
+								},
+								"description": "Testa com account_type não permitido (apenas 'checking' e 'savings' são válidos)"
+							},
+							"response": []
+						},
+						{
+							"name": "Erro - Usuário Inexistente",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.test(\"Status code is 422\", function () {",
+											"    pm.response.to.have.status(422);",
+											"});"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"user_id\": 999,\n  \"amount\": 100.00,\n  \"bank_code\": \"341\",\n  \"agency\": \"0001\",\n  \"account\": \"12345678\",\n  \"account_type\": \"checking\",\n  \"holder_name\": \"Teste\",\n  \"holder_document\": \"12345678900\"\n}"
+								},
+								"url": {
+									"raw": "{{base_url}}/api/withdraw",
+									"host": ["{{base_url}}"],
+									"path": ["api", "withdraw"]
+								},
+								"description": "Testa com user_id inexistente"
+							},
+							"response": []
+						}
+					],
+					"description": "Casos de erro para saques"
+				}
+			],
+			"description": "Endpoints relacionados a saques"
+		},
+		{
+			"name": "Testes de Carga",
+			"item": [
+				{
+					"name": "PIX - Requisições Múltiplas",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"user_id\": {{$randomInt}},\n  \"amount\": {{$randomPrice}},\n  \"description\": \"Teste de carga - {{$timestamp}}\",\n  \"customer_name\": \"{{$randomFullName}}\",\n  \"customer_document\": \"{{$randomBankAccount}}\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/pix",
+							"host": ["{{base_url}}"],
+							"path": ["api", "pix"]
+						},
+						"description": "Use o Collection Runner do Postman:\n1. Clique em 'Run Collection'\n2. Configure iterations (ex: 10)\n3. Configure delay entre requests (ex: 100ms)\n\nIsso simula múltiplas requisições simultâneas."
+					},
+					"response": []
+				},
+				{
+					"name": "Saque - Requisições Múltiplas",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"user_id\": 1,\n  \"amount\": {{$randomPrice}},\n  \"bank_code\": \"{{$randomBankAccount}}\",\n  \"agency\": \"{{$randomInt}}\",\n  \"account\": \"{{$randomBankAccount}}\",\n  \"account_type\": \"checking\",\n  \"holder_name\": \"{{$randomFullName}}\",\n  \"holder_document\": \"{{$randomBankAccount}}\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/withdraw",
+							"host": ["{{base_url}}"],
+							"path": ["api", "withdraw"]
+						},
+						"description": "Use o Collection Runner do Postman para simular carga"
+					},
+					"response": []
+				}
+			],
+			"description": "Requests para testar performance e carga do sistema"
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					"// Script executado antes de cada request",
+					"console.log('Executando request para:', pm.request.url.toString());"
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					"// Script executado após cada request",
+					"console.log('Response status:', pm.response.code);",
+					"console.log('Response time:', pm.response.responseTime + 'ms');"
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:8000",
+			"type": "string"
+		}
+	]
+}

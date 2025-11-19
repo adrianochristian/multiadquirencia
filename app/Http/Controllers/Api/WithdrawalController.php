@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\CreateWithdrawalRequest;
 use App\Jobs\ProcessWithdrawalWebhook;
+use App\Enums\WithdrawalStatus;
 use App\Models\User;
 use App\Models\Withdrawal;
 use App\Services\Subacquirers\SubacquirerFactory;
@@ -47,7 +48,7 @@ class WithdrawalController extends Controller
                     'subacquirer_id' => $user->subacquirer_id,
                     'withdrawal_id' => 'WD-' . Str::uuid(),
                     'amount' => $validated['amount'],
-                    'status' => Withdrawal::STATUS_PENDING,
+                    'status' => WithdrawalStatus::PENDING->value,
                     'bank_code' => $validated['bank_code'],
                     'agency' => $validated['agency'],
                     'account' => $validated['account'],
@@ -71,7 +72,7 @@ class WithdrawalController extends Controller
 
                 if (!$response['success']) {
                     $withdrawal->update([
-                        'status' => Withdrawal::STATUS_FAILED,
+                        'status' => WithdrawalStatus::FAILED->value,
                         'raw_response' => $response,
                     ]);
 

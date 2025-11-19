@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\CreatePixRequest;
 use App\Jobs\ProcessPixWebhook;
+use App\Enums\PixStatus;
 use App\Models\PixTransaction;
 use App\Models\User;
 use App\Services\Subacquirers\SubacquirerFactory;
@@ -45,7 +46,7 @@ class PixController extends Controller
                     'subacquirer_id' => $user->subacquirer_id,
                     'transaction_id' => 'PIX-' . Str::uuid(),
                     'amount' => $validated['amount'],
-                    'status' => PixTransaction::STATUS_PENDING,
+                    'status' => PixStatus::PENDING->value,
                     'raw_request' => $validated,
                 ]);
 
@@ -60,7 +61,7 @@ class PixController extends Controller
 
                 if (!$response['success']) {
                     $pixTransaction->update([
-                        'status' => PixTransaction::STATUS_FAILED,
+                        'status' => PixStatus::FAILED->value,
                         'raw_response' => $response,
                     ]);
 

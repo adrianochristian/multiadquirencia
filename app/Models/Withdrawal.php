@@ -7,6 +7,13 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Withdrawal extends Model
 {
+    public const STATUS_PENDING = 'PENDING';
+    public const STATUS_PROCESSING = 'PROCESSING';
+    public const STATUS_SUCCESS = 'SUCCESS';
+    public const STATUS_DONE = 'DONE';
+    public const STATUS_CANCELLED = 'CANCELLED';
+    public const STATUS_FAILED = 'FAILED';
+
     protected $fillable = [
         'user_id',
         'subacquirer_id',
@@ -48,11 +55,17 @@ class Withdrawal extends Model
 
     public function isPending(): bool
     {
-        return in_array($this->status, ['PENDING', 'PROCESSING']);
+        return in_array($this->status, [
+            self::STATUS_PENDING,
+            self::STATUS_PROCESSING,
+        ], true);
     }
 
     public function isCompleted(): bool
     {
-        return in_array($this->status, ['SUCCESS', 'DONE']);
+        return in_array($this->status, [
+            self::STATUS_SUCCESS,
+            self::STATUS_DONE,
+        ], true);
     }
 }

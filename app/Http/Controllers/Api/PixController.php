@@ -3,15 +3,14 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\CreatePixRequest;
 use App\Jobs\ProcessPixWebhook;
 use App\Models\PixTransaction;
 use App\Models\User;
 use App\Services\Subacquirers\SubacquirerFactory;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 
 class PixController extends Controller
@@ -19,25 +18,12 @@ class PixController extends Controller
     /**
      * Create a PIX transaction
      */
-    public function create(Request $request): JsonResponse
+    public function create(CreatePixRequest $request): JsonResponse
     {
         try {
-            $validator = Validator::make($request->all(), [
-                'user_id' => 'required|exists:users,id',
-                'amount' => 'required|numeric|min:0.01',
-                'description' => 'nullable|string',
-                'customer_name' => 'nullable|string',
-                'customer_document' => 'nullable|string',
-            ]);
+            $validated = $request->validated();
 
-            if ($validator->fails()) {
-                return response()->json([
-                    'success' => false,
-                    'errors' => $validator->errors(),
-                ], 422);
-            }
-
-            $user = User::with('subacquirer')->findOrFail($request->user_id);
+            $user = User::with('subacquirer')->findOrFail($validated['user_id']);
 
             if (!$user->subacquirer) {
                 return response()->json([
@@ -53,28 +39,28 @@ class PixController extends Controller
                 ], 400);
             }
 
-            return DB::transaction(function () use ($request, $user) {
+            return DB::transaction(function () use ($request, $user, $validated) {
                 $pixTransaction = PixTransaction::create([
                     'user_id' => $user->id,
                     'subacquirer_id' => $user->subacquirer_id,
                     'transaction_id' => 'PIX-' . Str::uuid(),
-                    'amount' => $request->amount,
-                    'status' => 'PENDING',
-                    'raw_request' => $request->all(),
+                    'amount' => $validated['amount'],
+                    'status' => PixTransaction::STATUS_PENDING,
+                    'raw_request' => $validated,
                 ]);
 
                 $subacquirerService = SubacquirerFactory::make($user->subacquirer);
 
                 $response = $subacquirerService->createPix([
-                    'amount' => $request->amount,
-                    'description' => $request->description,
-                    'customer_name' => $request->customer_name,
-                    'customer_document' => $request->customer_document,
+                    'amount' => $validated['amount'],
+                    'description' => $validated['description'] ?? null,
+                    'customer_name' => $validated['customer_name'] ?? null,
+                    'customer_document' => $validated['customer_document'] ?? null,
                 ]);
 
                 if (!$response['success']) {
                     $pixTransaction->update([
-                        'status' => 'FAILED',
+                        'status' => PixTransaction::STATUS_FAILED,
                         'raw_response' => $response,
                     ]);
 

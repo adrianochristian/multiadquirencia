@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\CreateWithdrawalRequest;
 use App\Jobs\ProcessWithdrawalWebhook;
 use App\Models\User;
 use App\Models\Withdrawal;
@@ -19,28 +20,12 @@ class WithdrawalController extends Controller
     /**
      * Create a withdrawal
      */
-    public function create(Request $request): JsonResponse
+    public function create(CreateWithdrawalRequest $request): JsonResponse
     {
         try {
-            $validator = Validator::make($request->all(), [
-                'user_id' => 'required|exists:users,id',
-                'amount' => 'required|numeric|min:0.01',
-                'bank_code' => 'required|string',
-                'agency' => 'required|string',
-                'account' => 'required|string',
-                'account_type' => 'nullable|string|in:checking,savings',
-                'holder_name' => 'required|string',
-                'holder_document' => 'required|string',
-            ]);
+            $validated = $request->validated();
 
-            if ($validator->fails()) {
-                return response()->json([
-                    'success' => false,
-                    'errors' => $validator->errors(),
-                ], 422);
-            }
-
-            $user = User::with('subacquirer')->findOrFail($request->user_id);
+            $user = User::with('subacquirer')->findOrFail($validated['user_id']);
 
             if (!$user->subacquirer) {
                 return response()->json([
@@ -56,37 +41,37 @@ class WithdrawalController extends Controller
                 ], 400);
             }
 
-            return DB::transaction(function () use ($request, $user) {
+            return DB::transaction(function () use ($user, $validated) {
                 $withdrawal = Withdrawal::create([
                     'user_id' => $user->id,
                     'subacquirer_id' => $user->subacquirer_id,
                     'withdrawal_id' => 'WD-' . Str::uuid(),
-                    'amount' => $request->amount,
-                    'status' => 'PENDING',
-                    'bank_code' => $request->bank_code,
-                    'agency' => $request->agency,
-                    'account' => $request->account,
-                    'account_type' => $request->account_type ?? 'checking',
-                    'document' => $request->holder_document,
+                    'amount' => $validated['amount'],
+                    'status' => Withdrawal::STATUS_PENDING,
+                    'bank_code' => $validated['bank_code'],
+                    'agency' => $validated['agency'],
+                    'account' => $validated['account'],
+                    'account_type' => $validated['account_type'] ?? 'checking',
+                    'document' => $validated['holder_document'],
                     'requested_at' => now(),
-                    'raw_request' => $request->all(),
+                    'raw_request' => $validated,
                 ]);
 
                 $subacquirerService = SubacquirerFactory::make($user->subacquirer);
 
                 $response = $subacquirerService->createWithdrawal([
-                    'amount' => $request->amount,
-                    'bank_code' => $request->bank_code,
-                    'agency' => $request->agency,
-                    'account' => $request->account,
-                    'account_type' => $request->account_type ?? 'checking',
-                    'holder_name' => $request->holder_name,
-                    'holder_document' => $request->holder_document,
+                    'amount' => $validated['amount'],
+                    'bank_code' => $validated['bank_code'],
+                    'agency' => $validated['agency'],
+                    'account' => $validated['account'],
+                    'account_type' => $validated['account_type'] ?? 'checking',
+                    'holder_name' => $validated['holder_name'],
+                    'holder_document' => $validated['holder_document'],
                 ]);
 
                 if (!$response['success']) {
                     $withdrawal->update([
-                        'status' => 'FAILED',
+                        'status' => Withdrawal::STATUS_FAILED,
                         'raw_response' => $response,
                     ]);
 

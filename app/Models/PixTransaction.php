@@ -7,6 +7,13 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class PixTransaction extends Model
 {
+    public const STATUS_PENDING = 'PENDING';
+    public const STATUS_PROCESSING = 'PROCESSING';
+    public const STATUS_CONFIRMED = 'CONFIRMED';
+    public const STATUS_PAID = 'PAID';
+    public const STATUS_CANCELLED = 'CANCELLED';
+    public const STATUS_FAILED = 'FAILED';
+
     protected $fillable = [
         'user_id',
         'subacquirer_id',
@@ -44,11 +51,17 @@ class PixTransaction extends Model
 
     public function isPending(): bool
     {
-        return in_array($this->status, ['PENDING', 'PROCESSING']);
+        return in_array($this->status, [
+            self::STATUS_PENDING,
+            self::STATUS_PROCESSING,
+        ], true);
     }
 
     public function isPaid(): bool
     {
-        return in_array($this->status, ['CONFIRMED', 'PAID']);
+        return in_array($this->status, [
+            self::STATUS_CONFIRMED,
+            self::STATUS_PAID,
+        ], true);
     }
 }

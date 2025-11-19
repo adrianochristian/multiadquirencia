@@ -39,7 +39,8 @@ abstract class BaseSubacquirerService
                 'headers' => $headers,
             ]);
 
-            $response = Http::withHeaders($headers)
+            $response = Http::timeout(5)
+                ->withHeaders($headers)
                 ->$method($url, $data);
 
             $responseData = $response->json();
